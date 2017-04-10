@@ -1,0 +1,6 @@
+[package]
+name = "r_http"
+version = "0.1.0"
+authors = ["Nazarii Sheremet <nazarii.sheremet@gmail.com>"]
+
+[dependencies]
