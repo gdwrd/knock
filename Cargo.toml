@@ -4,3 +4,8 @@ version = "0.1.0"
 authors = ["Nazarii Sheremet <nazarii.sheremet@gmail.com>"]
 
 [dependencies]
+serde_json = "0.9"
+rand = "0.3"
+
+[dependencies.url]
+git = "https://github.com/servo/rust-url"
