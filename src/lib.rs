@@ -1,6 +1,7 @@
 extern crate url;
 extern crate rand;
 extern crate serde_json;
+extern crate openssl;
 
 use std::net::TcpStream;
 use std::collections::HashMap;
@@ -13,6 +14,7 @@ use rand::Rng;
 use url::{Url, ParseError};
 use consts::*;
 use err::HttpError;
+use openssl::ssl::{SslMethod, SslConnectorBuilder};
 
 mod err;
 mod consts;
@@ -24,10 +26,8 @@ pub struct HTTP {
     method: String,
     body: HashMap<String, Data>,
     header: HashMap<String, String>,
-    request_str: String,
 
     host: String,
-    c_type: String,
     boundary: String,
     response_str: String,
 }
@@ -52,6 +52,7 @@ impl HTTP {
             Some(url) => url.to_string(),
             None => String::new()
         };
+
         Ok(HTTP {
             response: response,
             url: url,
@@ -59,55 +60,147 @@ impl HTTP {
             method: String::new(),
             body: HashMap::new(),
             header: HashMap::new(),
-            request_str: String::new(),
 
             host: host_url,
-            c_type: String::new(),
             boundary: String::new(),
             response_str: String::new(),
         })
     }
 
+    ///
+    // GET request
+    //
+    // Params: &mut self (HTTP)
+    //
+    // Response: &mut self (HTTP)
+    //
+    pub fn get(&mut self) -> &mut Self {
+        self.method = "GET".to_string();
+        self
+    }
+
+    ///
+    // POST request
+    //
+    // Params: &mut self (HTTP)
+    //
+    // Response: &mut self (HTTP)
+    //
+    pub fn post(&mut self) -> &mut Self {
+        self.method = "POST".to_string();
+        self
+    }
+
+    ///
+    // PUT request
+    //
+    // Params: &mut self (HTTP)
+    //
+    // Response: &mut self (HTTP)
+    //
+    pub fn put(&mut self) -> &mut Self {
+        self.method = "PUT".to_string();
+        self
+    }
+
+    ///
+    // DELETE request
+    //
+    // Params: &mut self (HTTP)
+    //
+    // Response: &mut self (HTTP)
+    //
+    pub fn delete(&mut self) -> &mut Self {
+        self.method = "DELETE".to_string();
+        self
+    }
+
+    ///
+    // REQEUST request
+    //
+    // Params: &mut self (HTTP), method &str
+    //
+    // Response: &mut self (HTTP)
+    //
     pub fn request(&mut self, method: &str) -> &mut Self {
         self.method = method.to_string();
         self
     }
 
+    ///
+    // Set Body to self.body
+    //
+    // Params: &mut self (HTTP), data HashMap<String, Data>
+    //
+    // Response: &mut self (HTTP)
+    //
     pub fn body(&mut self, data: HashMap<String, Data>) -> &mut Self {
         self.body = data;
         self
     }
 
+    ///
+    // Set Headers to self.header
+    //
+    // Params: &mut self (HTTP), data HashMap<String, String>
+    //
+    // Response: &mut self (HTTP)
+    //
     pub fn header(&mut self, data: HashMap<String, String>) -> &mut Self {
         self.header = data;
         self
     }
 
+    ///
+    // Create request, and send
+    //
+    // Params: &mut self (HTTP)
+    //
+    // Response: Result<Response, HttpError>
+    //
     pub fn send(&mut self) -> Result<Response, HttpError> {
         self.boundary = rand::thread_rng()
             .gen_ascii_chars()
             .take(32)
             .collect::<String>();
+
+        let url = try!(self.url.host_str().ok_or(ParseError::EmptyHost));
+        self.host = url.to_string();
+        let request = try!(self.create_request());
+
         if self.url.scheme() == "http" {
-           let url = try!(self.url.host_str().ok_or(ParseError::EmptyHost));
-           self.host = url.to_string();
            let port = match self.url.port() {
                Some(p) => p,
-               None => DEF_PORT,
+               None    => DEF_PORT,
            };
-           let addr = format!("{0}:{1}", url, port);
+           let addr = format!("{}:{}", url, port);
            let mut stream = try!(TcpStream::connect(addr));
-           let request = try!(self.create_request());
            try!(stream.write(request.as_bytes()));
            try!(stream.read_to_string(&mut self.response_str));
-           // TODO uncomplete
         } else {
-           // TODO SSL Connection
+           let port = match self.url.port() {
+               Some(p) => p,
+               None    => DEF_SSL_PORT,
+           };
+           let addr = format!("{}:{}", url, port);
+           let connector = try!(SslConnectorBuilder::new(SslMethod::tls())).build();
+           let stream = try!(TcpStream::connect(addr));
+           let mut stream = try!(connector.connect(&self.host, stream));
+
+           try!(stream.write(request.as_bytes()));
+           try!(stream.read_to_string(&mut self.response_str));
         }
 
         Ok(Response { status: 0, header: HashMap::new(), body: self.response_str.clone() })
     }
 
+    ///
+    // Create Reqeust String
+    //
+    // Params: &mut self (HTTP)
+    //
+    // Response: Result<String, HttpError>
+    //
     fn create_request(&self) -> Result<String, HttpError> {
         let (mut header, c_type) = organize_header(&self.header, self.host.clone());
         let body = try!(create_body(&c_type, &self.body, header.clone(), &self.boundary));
@@ -126,7 +219,7 @@ impl HTTP {
         let mut str = String::new();
         str += &format!("{0} {1} {2}{3}", self.method, self.url.path(), HTTP_VERSION, SEP);
 
-        for (key, val) in header.iter() {
+        for (key, val) in &header {
             str += &format!("{}: {}{}", key, val, SEP);
         }
 
@@ -190,12 +283,13 @@ fn create_body(c_type: &str, body: &HashMap<String, Data>, mut header: HashMap<S
     Ok(res)
 }
 
-fn organize_header(header: &HashMap<String, String>, host: String) -> (HashMap<String, String>, String) {
+fn organize_header(header: &HashMap<String, String>, host: String)
+    -> (HashMap<String, String>, String) {
     let mut data: HashMap<String, String> = HashMap::new();
     let mut c_type = String::new();
 
     if !header.is_empty() {
-        for (key, val) in header.iter() {
+        for (key, val) in header {
             if data.contains_key(val) {
                 let p_val = data.get(key).unwrap().to_string();  // Always be Some(val)
                 let str = format!("{}; {}", p_val, val);
@@ -222,7 +316,6 @@ fn organize_header(header: &HashMap<String, String>, host: String) -> (HashMap<S
     } else {
         data.insert(H_CTYPE.to_string(), C_TYPE[0].to_string());
     }
-
 
     (data, c_type)
 }

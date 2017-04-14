@@ -6,7 +6,6 @@ pub const SEP: &'static str = "\r\n";
 pub const DEF_PORT: u16 = 80;
 pub const DEF_SSL_PORT: u16 = 443;
 pub const DEF_ACCEPT: &'static str = "*/*";
-pub const DEF_PATH: &'static str = "/";
 pub const DEF_CONN: &'static str = "close";
 
 pub const H_HOST: &'static str = "Host";
