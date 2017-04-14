@@ -50,25 +50,29 @@ impl HTTP {
     // Response: Result<HTTP, HttpError>
     //
     pub fn new(url: &str) -> Result<HTTP, HttpError> {
-        let response = Response { status: 0, header: HashMap::new(), body: String::new() };
+        let response = Response {
+            status: 0,
+            header: HashMap::new(),
+            body: String::new(),
+        };
         let url = try!(Url::parse(url));
         let host_url = match url.host_str() {
             Some(url) => url.to_string(),
-            None => String::new()
+            None => String::new(),
         };
 
         Ok(HTTP {
-            response: response,
-            url: url,
+               response: response,
+               url: url,
 
-            method: String::new(),
-            body: HashMap::new(),
-            header: HashMap::new(),
+               method: String::new(),
+               body: HashMap::new(),
+               header: HashMap::new(),
 
-            host: host_url,
-            boundary: String::new(),
-            response_str: String::new(),
-        })
+               host: host_url,
+               boundary: String::new(),
+               response_str: String::new(),
+           })
     }
 
     ///
@@ -174,26 +178,26 @@ impl HTTP {
         let mut response = String::new();
 
         if self.url.scheme() == "http" {
-           let port = match self.url.port() {
-               Some(p) => p,
-               None    => DEF_PORT,
-           };
-           let addr = format!("{}:{}", url, port);
-           let mut stream = try!(TcpStream::connect(addr));
-           try!(stream.write(request.as_bytes()));
-           try!(stream.read_to_string(&mut self.response_str));
+            let port = match self.url.port() {
+                Some(p) => p,
+                None => DEF_PORT,
+            };
+            let addr = format!("{}:{}", url, port);
+            let mut stream = try!(TcpStream::connect(addr));
+            try!(stream.write(request.as_bytes()));
+            try!(stream.read_to_string(&mut self.response_str));
         } else {
-           let port = match self.url.port() {
-               Some(p) => p,
-               None    => DEF_SSL_PORT,
-           };
-           let addr = format!("{}:{}", url, port);
-           let connector = try!(SslConnectorBuilder::new(SslMethod::tls())).build();
-           let stream = try!(TcpStream::connect(addr));
-           let mut stream = try!(connector.connect(&self.host, stream));
+            let port = match self.url.port() {
+                Some(p) => p,
+                None => DEF_SSL_PORT,
+            };
+            let addr = format!("{}:{}", url, port);
+            let connector = try!(SslConnectorBuilder::new(SslMethod::tls())).build();
+            let stream = try!(TcpStream::connect(addr));
+            let mut stream = try!(connector.connect(&self.host, stream));
 
-           try!(stream.write(request.as_bytes()));
-           try!(stream.read_to_string(&mut response));
+            try!(stream.write(request.as_bytes()));
+            try!(stream.read_to_string(&mut response));
         }
 
         let resp = Response::new(response).unwrap();
@@ -218,13 +222,17 @@ impl HTTP {
             match method_exist {
                 Some(_) => {
                     header.insert(H_CLEN.to_string(), body.len().to_string());
-                },
-                None => { },
+                }
+                None => {}
             }
         }
 
         let mut str = String::new();
-        str += &format!("{} {} {}{}", self.method, self.url.path(), HTTP_VERSION, SEP);
+        str += &format!("{} {} {}{}",
+                        self.method,
+                        self.url.path(),
+                        HTTP_VERSION,
+                        SEP);
 
         for (key, val) in &header {
             str += &format!("{}: {}{}", key, val, SEP);
@@ -241,8 +249,11 @@ impl HTTP {
 //
 // Response: Result<String, HttpError>
 //
-fn create_body(c_type: &str, body: &HashMap<String, Data>, mut header: HashMap<String, String>, b: &str)
-    -> Result<String, HttpError> {
+fn create_body(c_type: &str,
+               body: &HashMap<String, Data>,
+               mut header: HashMap<String, String>,
+               b: &str)
+               -> Result<String, HttpError> {
     let mut res = String::new();
 
     if c_type == C_TYPE[1] {
@@ -264,14 +275,15 @@ fn create_body(c_type: &str, body: &HashMap<String, Data>, mut header: HashMap<S
                 &Data::File(ref str) => {
                     res += &format!("Content-Disposition: form-data; name={};", key);
                     let file_name = try!(Path::new(str)
-                        .file_name()
-                        .ok_or(Error::new(ErrorKind::InvalidData, "wrong file path")));
+                                             .file_name()
+                                             .ok_or(Error::new(ErrorKind::InvalidData,
+                                                               "wrong file path")));
                     res += &format!(" filename={0}{1}{1}", file_name.to_str().unwrap(), SEP);
                     let mut buffer = String::new();
                     let mut file = try!(File::open(str));
                     try!(file.read_to_string(&mut buffer));
                     res += &format!("{}{}", buffer, SEP);
-                },
+                }
                 &Data::String(ref str) => {
                     res += &format!("Content-Disposition: form-data; name={0}{1}{1}", key, SEP);
                     res += &format!("{}{}", str, SEP);
@@ -286,7 +298,7 @@ fn create_body(c_type: &str, body: &HashMap<String, Data>, mut header: HashMap<S
             match val {
                 &Data::String(ref str) => {
                     tmp_map.insert(key, str);
-                },
+                }
                 &Data::File(_) => continue,
             }
         }
@@ -304,15 +316,16 @@ fn create_body(c_type: &str, body: &HashMap<String, Data>, mut header: HashMap<S
 //
 // Response: (Result<String, HttpError>, String)
 //
-fn organize_header(header: &HashMap<String, String>, host: String)
-    -> (HashMap<String, String>, String) {
+fn organize_header(header: &HashMap<String, String>,
+                   host: String)
+                   -> (HashMap<String, String>, String) {
     let mut data: HashMap<String, String> = HashMap::new();
     let mut c_type = String::new();
 
     if !header.is_empty() {
         for (key, val) in header {
             if data.contains_key(val) {
-                let p_val = data.get(key).unwrap().to_string();  // Always be Some(val)
+                let p_val = data.get(key).unwrap().to_string(); // Always be Some(val)
                 let str = format!("{}; {}", p_val, val);
                 data.insert(key.to_string(), str);
             } else {
@@ -321,9 +334,15 @@ fn organize_header(header: &HashMap<String, String>, host: String)
         }
     }
 
-    if !data.contains_key(H_HOST)  { data.insert(H_HOST.to_string(), host.to_string()); }
-    if !data.contains_key(H_ACCPT) { data.insert(H_ACCPT.to_string(), DEF_ACCEPT.to_string()); }
-    if !data.contains_key(H_CONN)  { data.insert(H_CONN.to_string(), DEF_CONN.to_string()); }
+    if !data.contains_key(H_HOST) {
+        data.insert(H_HOST.to_string(), host.to_string());
+    }
+    if !data.contains_key(H_ACCPT) {
+        data.insert(H_ACCPT.to_string(), DEF_ACCEPT.to_string());
+    }
+    if !data.contains_key(H_CONN) {
+        data.insert(H_CONN.to_string(), DEF_CONN.to_string());
+    }
     if data.contains_key(H_CTYPE) {
         let c_types = C_TYPE.clone();
         c_type = data.get(H_CTYPE).unwrap().to_string();
@@ -331,8 +350,8 @@ fn organize_header(header: &HashMap<String, String>, host: String)
         match c_type_exist {
             None => {
                 data.insert(H_CTYPE.to_string(), C_TYPE[0].to_string());
-            },
-            Some(_) => { },
+            }
+            Some(_) => {}
         }
     } else {
         data.insert(H_CTYPE.to_string(), C_TYPE[0].to_string());
