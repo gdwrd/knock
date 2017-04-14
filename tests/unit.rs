@@ -1,8 +1,8 @@
 #[cfg(test)]
 mod test {
-    extern crate r_http;
+    extern crate knock;
 
-    use self::r_http::*;
+    use self::knock::*;
 
     #[test]
     fn setup_get_method_var_in_http() {
