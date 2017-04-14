@@ -1,10 +1,19 @@
 [package]
+
 name = "knock"
 version = "0.1.0"
 authors = ["Nazarii Sheremet <nazarii.sheremet@gmail.com>"]
+
+description = "Knock is a simple HTTP Client for Rust"
+documentation = "https://docs.rs/knock"
+repository = "https://github.com/nsheremet/knock"
+homepage = "https://github.com/nsheremet/knock"
+readme = "README.md"
+keywords = ["rust", "http-client"]
+license = "MPL-2.0"
 
 [dependencies]
 serde_json = "0.9"
 rand = "0.3"
 openssl = "0.9"
-url = "1.4.0"
+url = "1.4"

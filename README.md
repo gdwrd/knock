@@ -1,8 +1,11 @@
 # knock
 
 [![Build Status](https://travis-ci.org/nsheremet/knock.svg?branch=master)](https://travis-ci.org/nsheremet/knock)
+[![Crates.io](https://img.shields.io/crates/v/knock.svg)](https://crates.io/crates/knock)
 
 Knock is a simple HTTP Client for Rust
+
+[Documentation](https://docs.rs/crate/knock/0.1.0)
 
 ## Installation
 
