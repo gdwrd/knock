@@ -1,6 +1,12 @@
 [package]
-name = "r_http"
+name = "knock"
 version = "0.1.0"
 authors = ["Nazarii Sheremet <nazarii.sheremet@gmail.com>"]
 
 [dependencies]
+serde_json = "0.9"
+rand = "0.3"
+openssl = "0.9"
+
+[dependencies.url]
+git = "https://github.com/servo/rust-url"
