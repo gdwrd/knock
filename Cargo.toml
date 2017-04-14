@@ -7,6 +7,4 @@ authors = ["Nazarii Sheremet <nazarii.sheremet@gmail.com>"]
 serde_json = "0.9"
 rand = "0.3"
 openssl = "0.9"
-
-[dependencies.url]
-git = "https://github.com/servo/rust-url"
+url = "1.4.0"
