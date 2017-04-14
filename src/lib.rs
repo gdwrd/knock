@@ -14,18 +14,21 @@ use rand::Rng;
 use url::{Url, ParseError};
 use consts::*;
 use err::HttpError;
+use response::*;
 use openssl::ssl::{SslMethod, SslConnectorBuilder};
 
 mod err;
 mod consts;
+mod response;
 
+#[derive(Debug)]
 pub struct HTTP {
     pub response: Response,
     pub url: url::Url,
 
-    method: String,
-    body: HashMap<String, Data>,
-    header: HashMap<String, String>,
+    pub method: String,
+    pub body: HashMap<String, Data>,
+    pub header: HashMap<String, String>,
 
     host: String,
     boundary: String,
@@ -33,18 +36,19 @@ pub struct HTTP {
 }
 
 #[derive(Debug)]
-pub struct Response {
-    pub status: u32,
-    pub header: HashMap<String, String>,
-    pub body: String,
-}
-
 pub enum Data {
     File(String),
     String(String),
 }
 
 impl HTTP {
+    ///
+    // Create New HTTP
+    //
+    // Params: url &str
+    //
+    // Response: Result<HTTP, HttpError>
+    //
     pub fn new(url: &str) -> Result<HTTP, HttpError> {
         let response = Response { status: 0, header: HashMap::new(), body: String::new() };
         let url = try!(Url::parse(url));
@@ -167,6 +171,7 @@ impl HTTP {
         let url = try!(self.url.host_str().ok_or(ParseError::EmptyHost));
         self.host = url.to_string();
         let request = try!(self.create_request());
+        let mut response = String::new();
 
         if self.url.scheme() == "http" {
            let port = match self.url.port() {
@@ -188,10 +193,12 @@ impl HTTP {
            let mut stream = try!(connector.connect(&self.host, stream));
 
            try!(stream.write(request.as_bytes()));
-           try!(stream.read_to_string(&mut self.response_str));
+           try!(stream.read_to_string(&mut response));
         }
 
-        Ok(Response { status: 0, header: HashMap::new(), body: self.response_str.clone() })
+        let resp = Response::new(response).unwrap();
+
+        Ok(resp)
     }
 
     ///
@@ -217,7 +224,7 @@ impl HTTP {
         }
 
         let mut str = String::new();
-        str += &format!("{0} {1} {2}{3}", self.method, self.url.path(), HTTP_VERSION, SEP);
+        str += &format!("{} {} {}{}", self.method, self.url.path(), HTTP_VERSION, SEP);
 
         for (key, val) in &header {
             str += &format!("{}: {}{}", key, val, SEP);
@@ -227,6 +234,13 @@ impl HTTP {
     }
 }
 
+///
+// Create Body for request
+//
+// Params: c_type: &str, body: &HashMap<String, Data>, mut header: HashMap<String, String>, b: &str
+//
+// Response: Result<String, HttpError>
+//
 fn create_body(c_type: &str, body: &HashMap<String, Data>, mut header: HashMap<String, String>, b: &str)
     -> Result<String, HttpError> {
     let mut res = String::new();
@@ -283,6 +297,13 @@ fn create_body(c_type: &str, body: &HashMap<String, Data>, mut header: HashMap<S
     Ok(res)
 }
 
+///
+// Update Header
+//
+// Params: mut header: HashMap<String, String>, host: String
+//
+// Response: (Result<String, HttpError>, String)
+//
 fn organize_header(header: &HashMap<String, String>, host: String)
     -> (HashMap<String, String>, String) {
     let mut data: HashMap<String, String> = HashMap::new();
