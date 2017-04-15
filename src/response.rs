@@ -39,7 +39,9 @@ impl Response {
                 let v = tmp_vec[1];
                 if header.contains_key(k) {
                     let value;
-                    { value = header.get(k).unwrap().to_string(); }
+                    {
+                        value = header.get(k).unwrap().to_string();
+                    }
                     header.insert(k.to_string(), format!("{}; {}", value, v));
                 } else {
                     header.insert(k.to_string(), v.to_string());
@@ -47,6 +49,10 @@ impl Response {
             }
         }
 
-        Ok(Response { status: status, header: header, body: body })
+        Ok(Response {
+               status: status,
+               header: header,
+               body: body,
+           })
     }
 }
