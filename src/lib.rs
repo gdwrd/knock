@@ -21,7 +21,6 @@ mod err;
 mod consts;
 mod response;
 
-#[derive(Debug)]
 pub struct HTTP {
     pub response: Response,
     pub url: url::Url,
@@ -35,20 +34,19 @@ pub struct HTTP {
     response_str: String,
 }
 
-#[derive(Debug)]
 pub enum Data {
     File(String),
     String(String),
 }
 
 impl HTTP {
+
+    /// Create New HTTP
     ///
-    // Create New HTTP
-    //
-    // Params: url &str
-    //
-    // Response: Result<HTTP, HttpError>
-    //
+    /// Params: url &str
+    ///
+    /// Response: Result<HTTP, HttpError>
+    ///
     pub fn new(url: &str) -> Result<HTTP, HttpError> {
         let response = Response {
             status: 0,
@@ -75,97 +73,89 @@ impl HTTP {
            })
     }
 
+    /// GET request
     ///
-    // GET request
-    //
-    // Params: &mut self (HTTP)
-    //
-    // Response: &mut self (HTTP)
-    //
+    /// Params: &mut self (HTTP)
+    ///
+    /// Response: &mut self (HTTP)
+    ///
     pub fn get(&mut self) -> &mut Self {
         self.method = "GET".to_string();
         self
     }
 
+    /// POST request
     ///
-    // POST request
-    //
-    // Params: &mut self (HTTP)
-    //
-    // Response: &mut self (HTTP)
-    //
+    /// Params: &mut self (HTTP)
+    ///
+    /// Response: &mut self (HTTP)
+    ///
     pub fn post(&mut self) -> &mut Self {
         self.method = "POST".to_string();
         self
     }
 
+    /// PUT request
     ///
-    // PUT request
-    //
-    // Params: &mut self (HTTP)
-    //
-    // Response: &mut self (HTTP)
-    //
+    /// Params: &mut self (HTTP)
+    ///
+    /// Response: &mut self (HTTP)
+    ///
     pub fn put(&mut self) -> &mut Self {
         self.method = "PUT".to_string();
         self
     }
 
+    /// DELETE request
     ///
-    // DELETE request
-    //
-    // Params: &mut self (HTTP)
-    //
-    // Response: &mut self (HTTP)
-    //
+    /// Params: &mut self (HTTP)
+    ///
+    /// Response: &mut self (HTTP)
+    ///
     pub fn delete(&mut self) -> &mut Self {
         self.method = "DELETE".to_string();
         self
     }
 
+    /// REQEUST request
     ///
-    // REQEUST request
-    //
-    // Params: &mut self (HTTP), method &str
-    //
-    // Response: &mut self (HTTP)
-    //
+    /// Params: &mut self (HTTP), method &str
+    ///
+    /// Response: &mut self (HTTP)
+    ///
     pub fn request(&mut self, method: &str) -> &mut Self {
         self.method = method.to_string();
         self
     }
 
+    /// Set Body to self.body
     ///
-    // Set Body to self.body
-    //
-    // Params: &mut self (HTTP), data HashMap<String, Data>
-    //
-    // Response: &mut self (HTTP)
-    //
+    /// Params: &mut self (HTTP), data HashMap<String, Data>
+    ///
+    /// Response: &mut self (HTTP)
+    ///
     pub fn body(&mut self, data: HashMap<String, Data>) -> &mut Self {
         self.body = data;
         self
     }
 
+    /// Set Headers to self.header
     ///
-    // Set Headers to self.header
-    //
-    // Params: &mut self (HTTP), data HashMap<String, String>
-    //
-    // Response: &mut self (HTTP)
-    //
+    /// Params: &mut self (HTTP), data HashMap<String, String>
+    ///
+    /// Response: &mut self (HTTP)
+    ///
     pub fn header(&mut self, data: HashMap<String, String>) -> &mut Self {
         self.header = data;
         self
     }
 
+    /// Create request, and send
     ///
-    // Create request, and send
-    //
-    // Params: &mut self (HTTP)
-    //
-    // Response: Result<Response, HttpError>
-    //
+    /// Params: &mut self (HTTP)
+    ///
+    /// Response: Result<Response, HttpError>
+    ///
     pub fn send(&mut self) -> Result<Response, HttpError> {
         self.boundary = rand::thread_rng()
             .gen_ascii_chars()
@@ -205,13 +195,12 @@ impl HTTP {
         Ok(resp)
     }
 
+    /// Create Reqeust String
     ///
-    // Create Reqeust String
-    //
-    // Params: &mut self (HTTP)
-    //
-    // Response: Result<String, HttpError>
-    //
+    /// Params: &mut self (HTTP)
+    ///
+    /// Response: Result<String, HttpError>
+    ///
     fn create_request(&self) -> Result<String, HttpError> {
         let (mut header, c_type) = organize_header(&self.header, self.host.clone());
         let body = try!(create_body(&c_type, &self.body, header.clone(), &self.boundary));
@@ -242,13 +231,12 @@ impl HTTP {
     }
 }
 
+/// Create Body for request
 ///
-// Create Body for request
-//
-// Params: c_type: &str, body: &HashMap<String, Data>, mut header: HashMap<String, String>, b: &str
-//
-// Response: Result<String, HttpError>
-//
+/// Params: c_type: &str, body: &HashMap<String, Data>, mut header: HashMap<String, String>, b: &str
+///
+/// Response: Result<String, HttpError>
+///
 fn create_body(c_type: &str,
                body: &HashMap<String, Data>,
                mut header: HashMap<String, String>,
@@ -309,13 +297,12 @@ fn create_body(c_type: &str,
     Ok(res)
 }
 
+/// Update Header
 ///
-// Update Header
-//
-// Params: mut header: HashMap<String, String>, host: String
-//
-// Response: (Result<String, HttpError>, String)
-//
+/// Params: mut header: HashMap<String, String>, host: String
+///
+/// Response: (Result<String, HttpError>, String)
+///
 fn organize_header(header: &HashMap<String, String>,
                    host: String)
                    -> (HashMap<String, String>, String) {
