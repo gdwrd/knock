@@ -21,6 +21,14 @@ mod err;
 mod consts;
 mod response;
 
+/// HTTP struct
+///
+/// ```rust
+/// extern crate knock;
+///
+/// let mut http = knock::HTTP::new("https://example.com/api/date").unwrap();
+/// ```
+///
 pub struct HTTP {
     pub response: Response,
     pub url: url::Url,
@@ -28,6 +36,7 @@ pub struct HTTP {
     pub method: String,
     pub body: HashMap<String, Data>,
     pub header: HashMap<String, String>,
+    body_str: String,
 
     host: String,
     boundary: String,
@@ -41,11 +50,16 @@ pub enum Data {
 
 impl HTTP {
 
-    /// Create New HTTP
+    /// HTTP struct instance
     ///
-    /// Params: url &str
+    /// ```rust
+    /// extern crate knock;
     ///
-    /// Response: Result<HTTP, HttpError>
+    /// let mut http = match knock::HTTP::new("https://example.com/api/date") {
+    ///     Ok(http) => http,
+    ///     Err(err) => panic!(err)
+    /// };
+    /// ```
     ///
     pub fn new(url: &str) -> Result<HTTP, HttpError> {
         let response = Response {
@@ -66,6 +80,7 @@ impl HTTP {
                method: String::new(),
                body: HashMap::new(),
                header: HashMap::new(),
+               body_str: String::new(),
 
                host: host_url,
                boundary: String::new(),
@@ -73,88 +88,149 @@ impl HTTP {
            })
     }
 
-    /// GET request
+    /// How to send simple GET request
     ///
-    /// Params: &mut self (HTTP)
+    /// ```rust
+    /// extern crate knock;
     ///
-    /// Response: &mut self (HTTP)
+    /// let mut http = knock::HTTP::new("https://example.com/api/date").unwrap();
+    /// http.get().send();
+    /// ```
     ///
     pub fn get(&mut self) -> &mut Self {
         self.method = "GET".to_string();
         self
     }
 
-    /// POST request
+    /// How to send simple POST request
     ///
-    /// Params: &mut self (HTTP)
+    /// ```rust
+    /// extern crate knock;
     ///
-    /// Response: &mut self (HTTP)
+    /// let mut http = knock::HTTP::new("https://example.com/api/date").unwrap();
+    /// http.post().send();
+    /// ```
     ///
     pub fn post(&mut self) -> &mut Self {
         self.method = "POST".to_string();
         self
     }
 
-    /// PUT request
+    /// How to send simple PUT request
     ///
-    /// Params: &mut self (HTTP)
+    /// ```rust
+    /// extern crate knock;
     ///
-    /// Response: &mut self (HTTP)
+    /// let mut http = knock::HTTP::new("https://example.com/api/date").unwrap();
+    /// http.put().send();
+    /// ```
     ///
     pub fn put(&mut self) -> &mut Self {
         self.method = "PUT".to_string();
         self
     }
 
-    /// DELETE request
+    /// How to send simple DELETE request
     ///
-    /// Params: &mut self (HTTP)
+    /// ```rust
+    /// extern crate knock;
     ///
-    /// Response: &mut self (HTTP)
+    /// let mut http = knock::HTTP::new("https://example.com/api/date").unwrap();
+    /// http.delete().send();
+    /// ```
     ///
     pub fn delete(&mut self) -> &mut Self {
         self.method = "DELETE".to_string();
         self
     }
 
-    /// REQEUST request
+    /// Send custom Request
     ///
-    /// Params: &mut self (HTTP), method &str
+    /// ```rust
+    /// extern crate knock;
     ///
-    /// Response: &mut self (HTTP)
+    /// let mut http = knock::HTTP::new("https://example.com/api/data").unwrap();
+    /// http.request("OPTIONS").send();
+    /// ```
     ///
     pub fn request(&mut self, method: &str) -> &mut Self {
         self.method = method.to_string();
         self
     }
 
-    /// Set Body to self.body
+    /// Send Body data as HashMap<String, Data>
     ///
-    /// Params: &mut self (HTTP), data HashMap<String, Data>
+    /// ```rust
+    /// extern crate knock;
     ///
-    /// Response: &mut self (HTTP)
+    /// use std::collections::HashMap;
+    ///
+    /// let mut http = knock::HTTP::new("https://example.com/api/data").unwrap();
+    /// let mut body: HashMap<String, knock::Data> = HashMap::new();
+    /// body.insert("key".to_string(), knock::Data::String("value".to_string()));
+    ///
+    /// http.post().body(body).send();
+    /// ```
     ///
     pub fn body(&mut self, data: HashMap<String, Data>) -> &mut Self {
         self.body = data;
         self
     }
 
-    /// Set Headers to self.header
+    /// You also can use body_as_str function for sending body as String
     ///
-    /// Params: &mut self (HTTP), data HashMap<String, String>
+    /// ```rust
+    /// extern crate knock;
     ///
-    /// Response: &mut self (HTTP)
+    /// let mut http = knock::HTTP::new("https://example.com/api/data").unwrap();
+    /// http.post().body_as_str("{\"key\": \"value\"}").send();
+    /// ```
+    /// But you need to set Content-Type in header,
+    /// default Content-Type
+    pub fn body_as_str(&mut self, data: &str) -> &mut Self {
+        self.body_str = data.to_string();
+        self
+    }
+
+    /// Send Body data as HashMap<String, Data>
+    ///
+    /// ```rust
+    /// extern crate knock;
+    ///
+    /// use std::collections::HashMap;
+    ///
+    /// let mut http = knock::HTTP::new("https://example.com/api/data").unwrap();
+    /// let mut body: HashMap<String, knock::Data> = HashMap::new();
+    /// let mut header: HashMap<String, String> = HashMap::new();
+    ///
+    /// body.insert("key".to_string(), knock::Data::String("value".to_string()));
+    /// header.insert("Content-Type".to_string(), "application/json".to_string());
+    ///
+    /// http.post().body(body).header(header).send();
+    /// ```
     ///
     pub fn header(&mut self, data: HashMap<String, String>) -> &mut Self {
         self.header = data;
         self
     }
 
-    /// Create request, and send
+    /// Send Body data as HashMap<String, Data>
     ///
-    /// Params: &mut self (HTTP)
+    /// ```rust
+    /// extern crate knock;
     ///
-    /// Response: Result<Response, HttpError>
+    /// use std::collections::HashMap;
+    ///
+    /// let mut http = knock::HTTP::new("https://example.com/api/data").unwrap();
+    /// let mut body: HashMap<String, knock::Data> = HashMap::new();
+    ///
+    /// body.insert("key".to_string(), knock::Data::String("value".to_string()));
+    ///
+    /// match http.post().body(body).send() {
+    ///     Ok(res) => println!("{:?}", res),
+    ///     Err(err) => println!("{:?}", err)
+    /// };
+    /// ```
     ///
     pub fn send(&mut self) -> Result<Response, HttpError> {
         self.boundary = rand::thread_rng()
@@ -165,7 +241,7 @@ impl HTTP {
         let url = try!(self.url.host_str().ok_or(ParseError::EmptyHost));
         self.host = url.to_string();
         let request = try!(self.create_request());
-        let mut response = String::new();
+        let response;
 
         if self.url.scheme() == "http" {
             let port = match self.url.port() {
@@ -187,11 +263,11 @@ impl HTTP {
             let mut stream = try!(connector.connect(&self.host, stream));
 
             try!(stream.write(request.as_bytes()));
-            try!(stream.read_to_string(&mut response));
+            try!(stream.read_to_string(&mut self.response_str));
         }
 
+        response = self.response_str.clone();
         let resp = Response::new(response).unwrap();
-
         Ok(resp)
     }
 
@@ -203,7 +279,13 @@ impl HTTP {
     ///
     fn create_request(&self) -> Result<String, HttpError> {
         let (mut header, c_type) = organize_header(&self.header, self.host.clone());
-        let body = try!(create_body(&c_type, &self.body, header.clone(), &self.boundary));
+        let body;
+
+        if self.body_str.is_empty() {
+            body = try!(create_body(&c_type, &self.body, header.clone(), &self.boundary));
+        } else {
+            body = self.body_str.clone();
+        }
 
         {
             let cl_methods = CL_METHODS.clone();
