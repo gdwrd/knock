@@ -19,7 +19,7 @@ use openssl::ssl::{SslMethod, SslConnectorBuilder};
 
 mod err;
 mod consts;
-mod response;
+pub mod response;
 
 /// HTTP struct
 ///
