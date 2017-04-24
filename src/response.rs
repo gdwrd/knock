@@ -55,4 +55,15 @@ impl Response {
                body: body,
            })
     }
+
+    pub fn as_str(&self) -> String {
+        let status = format!("Status: {}", self.status);
+        let mut header = String::new();
+
+        for (key, value) in self.header.clone() {
+            header = format!("{}{}{}: {}", header, SEP, key, value);
+        }
+
+        format!("{0}{1}{1}{2}{1}{1}{3}", status, SEP, header, self.body)
+    }
 }

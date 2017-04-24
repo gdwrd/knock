@@ -37,4 +37,13 @@ mod test {
 
         assert!(response.body == body_str);
     }
+
+    #[test]
+    fn get_reponse_as_string() {
+        let mut http = HTTP::new("http://www.mocky.io/v2/58f48af0100000b60f68cad8").unwrap();
+        let response = http.get().send().unwrap();
+        let string = response.as_str();
+
+        assert!(!string.is_empty(), "Response shouldn't be empty");
+    }
 }

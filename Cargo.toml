@@ -1,7 +1,7 @@
 [package]
 
 name = "knock"
-version = "0.1.3"
+version = "0.1.4"
 authors = ["Nazarii Sheremet <nazarii.sheremet@gmail.com>"]
 
 description = "Knock is a simple HTTP Client for Rust"
