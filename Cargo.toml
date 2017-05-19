@@ -17,7 +17,7 @@ serde_json = "0.9"
 rand = "0.3"
 openssl = "0.9"
 url = "1.4"
-clippy = { git = "https://github.com/Manishearth/rust-clippy", optional = true}
+clippy = { version = "0.0.134", optional = true}
 
 [features]
 default = []
