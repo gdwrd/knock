@@ -70,7 +70,7 @@ impl HTTP {
             header: HashMap::new(),
             body: String::new(),
         };
-        let url = try!(Url::parse(url));
+        let url = Url::parse(url)?;
         let host_url = match url.host_str() {
             Some(url) => url.to_string(),
             None => String::new(),
@@ -241,9 +241,9 @@ impl HTTP {
             .take(32)
             .collect::<String>();
 
-        let url = try!(self.url.host_str().ok_or(ParseError::EmptyHost));
+        let url = self.url.host_str().ok_or(ParseError::EmptyHost)?;
         self.host = url.to_string();
-        let request = try!(self.create_request());
+        let request = self.create_request()?;
         let response;
 
         if self.url.scheme() == "http" {
@@ -252,7 +252,7 @@ impl HTTP {
                 None => DEF_PORT,
             };
             let addr = format!("{}:{}", url, port);
-            let mut stream = try!(TcpStream::connect(addr));
+            let mut stream = TcpStream::connect(addr)?;
             stream.write_all(request.as_bytes())?;
             stream.read_to_string(&mut self.response_str)?;
         } else {
@@ -261,9 +261,9 @@ impl HTTP {
                 None => DEF_SSL_PORT,
             };
             let addr = format!("{}:{}", url, port);
-            let connector = try!(SslConnectorBuilder::new(SslMethod::tls())).build();
-            let stream = try!(TcpStream::connect(addr));
-            let mut stream = try!(connector.connect(&self.host, stream));
+            let connector = SslConnectorBuilder::new(SslMethod::tls())?.build();
+            let stream = TcpStream::connect(addr)?;
+            let mut stream = connector.connect(&self.host, stream)?;
 
             stream.write_all(request.as_bytes())?;
             stream.read_to_string(&mut self.response_str)?;
@@ -346,8 +346,8 @@ fn create_body(c_type: &str,
                     let file_name = Path::new(str).file_name().ok_or_else(|| Error::new(ErrorKind::InvalidData, "wrong file path"))?;
                     res += &format!(" filename={0}{1}{1}", file_name.to_str().unwrap(), SEP);
                     let mut buffer = String::new();
-                    let mut file = try!(File::open(str));
-                    try!(file.read_to_string(&mut buffer));
+                    let mut file = File::open(str)?;
+                    file.read_to_string(&mut buffer)?;
                     res += &format!("{}{}", buffer, SEP);
                 }
                 Data::String(ref str) => {
@@ -369,7 +369,7 @@ fn create_body(c_type: &str,
             }
         }
 
-        res = try!(serde_json::to_string(&tmp_map));
+        res = serde_json::to_string(&tmp_map)?;
     }
 
     Ok(res)
