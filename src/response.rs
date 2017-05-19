@@ -28,7 +28,7 @@ impl Response {
         let head = tmp_vec[0];
 
         if head.contains("HTTP/1") {
-            let vec_head: Vec<&str> = head.split(" ").collect();
+            let vec_head: Vec<&str> = head.split(' ').collect();
             status = try!(vec_head[1].parse::<u32>());
         }
 
@@ -40,7 +40,7 @@ impl Response {
                 if header.contains_key(k) {
                     let value;
                     {
-                        value = header.get(k).unwrap().to_string();
+                        value = header[k].to_string();
                     }
                     header.insert(k.to_string(), format!("{}; {}", value, v));
                 } else {

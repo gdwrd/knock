@@ -1,3 +1,6 @@
+#![cfg_attr(feature="clippy", feature(plugin))]
+#![cfg_attr(feature="clippy", plugin(clippy))]
+
 extern crate url;
 extern crate rand;
 extern crate serde_json;
@@ -250,8 +253,8 @@ impl HTTP {
             };
             let addr = format!("{}:{}", url, port);
             let mut stream = try!(TcpStream::connect(addr));
-            try!(stream.write(request.as_bytes()));
-            try!(stream.read_to_string(&mut self.response_str));
+            stream.write_all(request.as_bytes())?;
+            stream.read_to_string(&mut self.response_str)?;
         } else {
             let port = match self.url.port() {
                 Some(p) => p,
@@ -262,8 +265,8 @@ impl HTTP {
             let stream = try!(TcpStream::connect(addr));
             let mut stream = try!(connector.connect(&self.host, stream));
 
-            try!(stream.write(request.as_bytes()));
-            try!(stream.read_to_string(&mut self.response_str));
+            stream.write_all(request.as_bytes())?;
+            stream.read_to_string(&mut self.response_str)?;
         }
 
         response = self.response_str.clone();
@@ -278,23 +281,19 @@ impl HTTP {
     /// Response: Result<String, HttpError>
     ///
     fn create_request(&self) -> Result<String, HttpError> {
-        let (mut header, c_type) = organize_header(&self.header, self.host.clone());
-        let body;
+        let (mut header, c_type) = organize_header(&self.header, &self.host);
 
-        if self.body_str.is_empty() {
-            body = try!(create_body(&c_type, &self.body, header.clone(), &self.boundary));
+        let body = if self.body_str.is_empty() {
+            create_body(&c_type, &self.body, header.clone(), &self.boundary)?
         } else {
-            body = self.body_str.clone();
-        }
+            self.body_str.clone()
+        };
 
         {
-            let cl_methods = CL_METHODS.clone();
+            let cl_methods = CL_METHODS;
             let method_exist = cl_methods.iter().find(|&&x| x == self.method);
-            match method_exist {
-                Some(_) => {
-                    header.insert(H_CLEN.to_string(), body.len().to_string());
-                }
-                None => {}
+            if method_exist.is_some() {
+                header.insert(H_CLEN.to_string(), body.len().to_string());
             }
         }
 
@@ -315,9 +314,9 @@ impl HTTP {
 
 /// Create Body for request
 ///
-/// Params: c_type: &str, body: &HashMap<String, Data>, mut header: HashMap<String, String>, b: &str
+/// Params: `c_type`: &str, body: &`HashMap`<String, Data>, mut header: `HashMap`<String, String>, b: &str
 ///
-/// Response: Result<String, HttpError>
+/// Response: Result<String, `HttpError`>
 ///
 fn create_body(c_type: &str,
                body: &HashMap<String, Data>,
@@ -328,12 +327,12 @@ fn create_body(c_type: &str,
 
     if c_type == C_TYPE[1] {
         for (key, val) in body.iter() {
-            match val {
-                &Data::String(ref str) => res += &format!("{}={}", key, str),
-                &Data::File(_) => continue,
+            match *val {
+                Data::String(ref str) => res += &format!("{}={}", key, str),
+                Data::File(_) => continue,
             }
             if body.keys().last().unwrap() != key {
-                res += &format!("&");
+                res += "&";
             }
         }
     } else if c_type == C_TYPE[2] {
@@ -341,20 +340,17 @@ fn create_body(c_type: &str,
 
         for (key, val) in body.iter() {
             res += &format!("--{}{}", b, SEP);
-            match val {
-                &Data::File(ref str) => {
+            match *val {
+                Data::File(ref str) => {
                     res += &format!("Content-Disposition: form-data; name={};", key);
-                    let file_name = try!(Path::new(str)
-                                             .file_name()
-                                             .ok_or(Error::new(ErrorKind::InvalidData,
-                                                               "wrong file path")));
+                    let file_name = Path::new(str).file_name().ok_or_else(|| Error::new(ErrorKind::InvalidData, "wrong file path"))?;
                     res += &format!(" filename={0}{1}{1}", file_name.to_str().unwrap(), SEP);
                     let mut buffer = String::new();
                     let mut file = try!(File::open(str));
                     try!(file.read_to_string(&mut buffer));
                     res += &format!("{}{}", buffer, SEP);
                 }
-                &Data::String(ref str) => {
+                Data::String(ref str) => {
                     res += &format!("Content-Disposition: form-data; name={0}{1}{1}", key, SEP);
                     res += &format!("{}{}", str, SEP);
                 }
@@ -365,11 +361,11 @@ fn create_body(c_type: &str,
     } else {
         let mut tmp_map: HashMap<&str, &str> = HashMap::new();
         for (key, val) in body.iter() {
-            match val {
-                &Data::String(ref str) => {
+            match *val {
+                Data::String(ref str) => {
                     tmp_map.insert(key, str);
                 }
-                &Data::File(_) => continue,
+                Data::File(_) => continue,
             }
         }
 
@@ -381,12 +377,12 @@ fn create_body(c_type: &str,
 
 /// Update Header
 ///
-/// Params: mut header: HashMap<String, String>, host: String
+/// Params: mut header: `HashMap`<String, String>, host: String
 ///
-/// Response: (Result<String, HttpError>, String)
+/// Response: (Result<String, `HttpError`>, String)
 ///
 fn organize_header(header: &HashMap<String, String>,
-                   host: String)
+                   host: &str)
                    -> (HashMap<String, String>, String) {
     let mut data: HashMap<String, String> = HashMap::new();
     let mut c_type = String::new();
@@ -394,7 +390,7 @@ fn organize_header(header: &HashMap<String, String>,
     if !header.is_empty() {
         for (key, val) in header {
             if data.contains_key(val) {
-                let p_val = data.get(key).unwrap().to_string(); // Always be Some(val)
+                let p_val = data[key].to_string(); // Always be Some(val)
                 let str = format!("{}; {}", p_val, val);
                 data.insert(key.to_string(), str);
             } else {
@@ -413,8 +409,8 @@ fn organize_header(header: &HashMap<String, String>,
         data.insert(H_CONN.to_string(), DEF_CONN.to_string());
     }
     if data.contains_key(H_CTYPE) {
-        let c_types = C_TYPE.clone();
-        c_type = data.get(H_CTYPE).unwrap().to_string();
+        let c_types = C_TYPE;
+        c_type = data[H_CTYPE].to_string();
         let c_type_exist = c_types.iter().find(|&&x| x == c_type);
         match c_type_exist {
             None => {
