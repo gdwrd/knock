@@ -4,7 +4,7 @@
 extern crate url;
 extern crate rand;
 extern crate serde_json;
-extern crate openssl;
+extern crate native_tls;
 
 use std::net::TcpStream;
 use std::collections::HashMap;
@@ -18,7 +18,7 @@ use url::{Url, ParseError};
 use consts::*;
 use err::HttpError;
 use response::*;
-use openssl::ssl::{SslMethod, SslConnectorBuilder};
+use native_tls::TlsConnector;
 
 mod err;
 mod consts;
@@ -261,7 +261,7 @@ impl HTTP {
                 None => DEF_SSL_PORT,
             };
             let addr = format!("{}:{}", url, port);
-            let connector = SslConnectorBuilder::new(SslMethod::tls())?.build();
+            let connector = TlsConnector::builder()?.build()?;
             let stream = TcpStream::connect(addr)?;
             let mut stream = connector.connect(&self.host, stream)?;
 

@@ -15,7 +15,7 @@ license = "MPL-2.0"
 [dependencies]
 serde_json = "0.9"
 rand = "0.3"
-openssl = "0.9"
+native-tls = "0.1.4"
 url = "1.4"
 clippy = { version = "0.0.134", optional = true}
 
