@@ -297,10 +297,14 @@ impl HTTP {
             }
         }
 
+        let path = match self.url.query() {
+            Some(q) => format!("{}?{}", self.url.path(), q),
+            None => self.url.path().to_string(),
+        };
         let mut str = String::new();
         str += &format!("{} {} {}{}",
                         self.method,
-                        self.url.path(),
+                        path,
                         HTTP_VERSION,
                         SEP);
 
@@ -423,4 +427,16 @@ fn organize_header(header: &HashMap<String, String>,
     }
 
     (data, c_type)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::HTTP;
+
+    #[test]
+    fn test_query_params() {
+        let mut http = HTTP::new("http://moo.com/?foo=bar").unwrap();
+        let expected = "GET /?foo=bar".to_string();
+        assert_eq!(http.get().create_request().unwrap()[0 .. expected.len()], expected);
+    }
 }
