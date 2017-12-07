@@ -49,10 +49,10 @@ impl Response {
         }
 
         Ok(Response {
-               status: status,
-               header: header,
-               body: body,
-           })
+            status: status,
+            header: header,
+            body: body,
+        })
     }
 
     pub fn as_str(&self) -> String {
