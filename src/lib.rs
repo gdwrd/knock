@@ -4,6 +4,7 @@
 extern crate url;
 extern crate rand;
 extern crate serde_json;
+#[cfg(feature = "native_tls")]
 extern crate native_tls;
 
 use std::net::TcpStream;
@@ -18,6 +19,7 @@ use url::{Url, ParseError};
 use consts::*;
 use err::HttpError;
 use response::*;
+#[cfg(feature = "native_tls")]
 use native_tls::TlsConnector;
 
 mod err;
@@ -52,7 +54,6 @@ pub enum Data {
 }
 
 impl HTTP {
-
     /// HTTP struct instance
     ///
     /// ```rust
@@ -77,18 +78,18 @@ impl HTTP {
         };
 
         Ok(HTTP {
-               response: response,
-               url: url,
+            response: response,
+            url: url,
 
-               method: String::new(),
-               body: HashMap::new(),
-               header: HashMap::new(),
-               body_str: String::new(),
+            method: String::new(),
+            body: HashMap::new(),
+            header: HashMap::new(),
+            body_str: String::new(),
 
-               host: host_url,
-               boundary: String::new(),
-               response_str: String::new(),
-           })
+            host: host_url,
+            boundary: String::new(),
+            response_str: String::new(),
+        })
     }
 
     /// How to send simple GET request
@@ -256,17 +257,7 @@ impl HTTP {
             stream.write_all(request.as_bytes())?;
             stream.read_to_string(&mut self.response_str)?;
         } else {
-            let port = match self.url.port() {
-                Some(p) => p,
-                None => DEF_SSL_PORT,
-            };
-            let addr = format!("{}:{}", url, port);
-            let connector = TlsConnector::builder()?.build()?;
-            let stream = TcpStream::connect(addr)?;
-            let mut stream = connector.connect(&self.host, stream)?;
-
-            stream.write_all(request.as_bytes())?;
-            stream.read_to_string(&mut self.response_str)?;
+            self.tls_transport(url)?;
         }
 
         response = self.response_str.clone();
@@ -274,6 +265,27 @@ impl HTTP {
         Ok(resp)
     }
 
+    #[cfg(feature = "native_tls")]
+    fn tls_transport(&self, url: &str) -> Result<(), HttpError> {
+        let port = match self.url.port() {
+            Some(p) => p,
+            None => DEF_SSL_PORT,
+        };
+        let addr = format!("{}:{}", url, port);
+        let connector = TlsConnector::builder()?.build()?;
+        let stream = TcpStream::connect(addr)?;
+        let mut stream = connector.connect(&self.host, stream)?;
+
+        stream.write_all(request.as_bytes())?;
+        stream.read_to_string(&mut self.response_str)?;
+    }
+
+    #[cfg(not(feature = "native_tls"))]
+    fn tls_transport(&self, _url: &str) -> Result<(), HttpError> {
+        Err(HttpError::MissingFeature(
+            "Lib not compiled with feature native_tls active".into(),
+        ))
+    }
     /// Create Reqeust String
     ///
     /// Params: &mut self (HTTP)
@@ -302,11 +314,7 @@ impl HTTP {
             None => self.url.path().to_string(),
         };
         let mut str = String::new();
-        str += &format!("{} {} {}{}",
-                        self.method,
-                        path,
-                        HTTP_VERSION,
-                        SEP);
+        str += &format!("{} {} {}{}", self.method, path, HTTP_VERSION, SEP);
 
         for (key, val) in &header {
             str += &format!("{}: {}{}", key, val, SEP);
@@ -322,11 +330,12 @@ impl HTTP {
 ///
 /// Response: Result<String, `HttpError`>
 ///
-fn create_body(c_type: &str,
-               body: &HashMap<String, Data>,
-               mut header: HashMap<String, String>,
-               b: &str)
-               -> Result<String, HttpError> {
+fn create_body(
+    c_type: &str,
+    body: &HashMap<String, Data>,
+    mut header: HashMap<String, String>,
+    b: &str,
+) -> Result<String, HttpError> {
     let mut res = String::new();
 
     if c_type == C_TYPE[1] {
@@ -347,7 +356,9 @@ fn create_body(c_type: &str,
             match *val {
                 Data::File(ref str) => {
                     res += &format!("Content-Disposition: form-data; name={};", key);
-                    let file_name = Path::new(str).file_name().ok_or_else(|| Error::new(ErrorKind::InvalidData, "wrong file path"))?;
+                    let file_name = Path::new(str).file_name().ok_or_else(|| {
+                        Error::new(ErrorKind::InvalidData, "wrong file path")
+                    })?;
                     res += &format!(" filename={0}{1}{1}", file_name.to_str().unwrap(), SEP);
                     let mut buffer = String::new();
                     let mut file = File::open(str)?;
@@ -385,9 +396,10 @@ fn create_body(c_type: &str,
 ///
 /// Response: (Result<String, `HttpError`>, String)
 ///
-fn organize_header(header: &HashMap<String, String>,
-                   host: &str)
-                   -> (HashMap<String, String>, String) {
+fn organize_header(
+    header: &HashMap<String, String>,
+    host: &str,
+) -> (HashMap<String, String>, String) {
     let mut data: HashMap<String, String> = HashMap::new();
     let mut c_type = String::new();
 
@@ -437,6 +449,9 @@ mod tests {
     fn test_query_params() {
         let mut http = HTTP::new("http://moo.com/?foo=bar").unwrap();
         let expected = "GET /?foo=bar".to_string();
-        assert_eq!(http.get().create_request().unwrap()[0 .. expected.len()], expected);
+        assert_eq!(
+            http.get().create_request().unwrap()[0..expected.len()],
+            expected
+        );
     }
 }
