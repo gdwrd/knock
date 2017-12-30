@@ -1,15 +1,15 @@
 extern crate serde_json;
-#[cfg(feature = "native_tls")]
+#[cfg(feature = "native-tls")]
 extern crate native_tls;
 
 use std::fmt;
 use std::error;
 use std::io;
-#[cfg(feature = "native_tls")]
+#[cfg(feature = "native-tls")]
 use std::net::TcpStream;
 use std::num::ParseIntError;
 use url::ParseError;
-#[cfg(feature = "native_tls")]
+#[cfg(feature = "native-tls")]
 use native_tls::HandshakeError;
 
 #[derive(Debug)]
@@ -17,9 +17,9 @@ pub enum HttpError {
     Parse(ParseError),
     IO(io::Error),
     Json(serde_json::Error),
-    #[cfg(feature = "native_tls")]
+    #[cfg(feature = "native-tls")]
     TLS(native_tls::Error),
-    #[cfg(feature = "native_tls")]
+    #[cfg(feature = "native-tls")]
     SSL(HandshakeError<TcpStream>),
     ParseInt(ParseIntError),
     MissingFeature(String),
@@ -43,14 +43,14 @@ impl From<serde_json::Error> for HttpError {
     }
 }
 
-#[cfg(feature = "native_tls")]
+#[cfg(feature = "native-tls")]
 impl From<native_tls::Error> for HttpError {
     fn from(err: native_tls::Error) -> HttpError {
         HttpError::TLS(err)
     }
 }
 
-#[cfg(feature = "native_tls")]
+#[cfg(feature = "native-tls")]
 impl From<HandshakeError<TcpStream>> for HttpError {
     fn from(err: HandshakeError<TcpStream>) -> HttpError {
         HttpError::SSL(err)
@@ -69,9 +69,9 @@ impl fmt::Display for HttpError {
             HttpError::Parse(ref err) => write!(f, "Parse error: {}", err),
             HttpError::IO(ref err) => write!(f, "Parse error: {}", err),
             HttpError::Json(ref err) => write!(f, "Parse error: {}", err),
-            #[cfg(feature = "native_tls")]
+            #[cfg(feature = "native-tls")]
             HttpError::TLS(ref err) => write!(f, "Parse error: {}", err),
-            #[cfg(feature = "native_tls")]
+            #[cfg(feature = "native-tls")]
             HttpError::SSL(ref err) => write!(f, "Parse error: {}", err),
             HttpError::ParseInt(ref err) => write!(f, "Parse error: {}", err),
             HttpError::MissingFeature(ref err) => write!(f, "Missing feature: {}", err),
@@ -85,9 +85,9 @@ impl error::Error for HttpError {
             HttpError::Parse(ref err) => err.description(),
             HttpError::IO(ref err) => err.description(),
             HttpError::Json(ref err) => err.description(),
-            #[cfg(feature = "native_tls")]
+            #[cfg(feature = "native-tls")]
             HttpError::TLS(ref err) => err.description(),
-            #[cfg(feature = "native_tls")]
+            #[cfg(feature = "native-tls")]
             HttpError::SSL(ref err) => err.description(),
             HttpError::ParseInt(ref err) => err.description(),
             HttpError::MissingFeature(ref err) => err,
@@ -99,9 +99,9 @@ impl error::Error for HttpError {
             HttpError::Parse(ref err) => Some(err),
             HttpError::IO(ref err) => Some(err),
             HttpError::Json(ref err) => Some(err),
-            #[cfg(feature = "native_tls")]
+            #[cfg(feature = "native-tls")]
             HttpError::TLS(ref err) => Some(err),
-            #[cfg(feature = "native_tls")]
+            #[cfg(feature = "native-tls")]
             HttpError::SSL(ref err) => Some(err),
             HttpError::ParseInt(ref err) => Some(err),
             HttpError::MissingFeature(ref _err) => None,

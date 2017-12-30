@@ -8,7 +8,7 @@ pub const C_TYPE: [&'static str; 3] = [
 pub const SEP: &'static str = "\r\n";
 
 pub const DEF_PORT: u16 = 80;
-#[cfg(feature = "native_tls")]
+#[cfg(feature = "native-tls")]
 pub const DEF_SSL_PORT: u16 = 443;
 pub const DEF_ACCEPT: &'static str = "*/*";
 pub const DEF_CONN: &'static str = "close";
