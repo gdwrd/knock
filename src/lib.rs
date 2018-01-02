@@ -4,7 +4,7 @@
 extern crate url;
 extern crate rand;
 extern crate serde_json;
-#[cfg(feature = "native_tls")]
+#[cfg(feature = "native-tls")]
 extern crate native_tls;
 
 use std::net::TcpStream;
@@ -19,7 +19,7 @@ use url::{Url, ParseError};
 use consts::*;
 use err::HttpError;
 use response::*;
-#[cfg(feature = "native_tls")]
+#[cfg(feature = "native-tls")]
 use native_tls::TlsConnector;
 
 mod err;
@@ -257,7 +257,7 @@ impl HTTP {
             stream.write_all(request.as_bytes())?;
             stream.read_to_string(&mut self.response_str)?;
         } else {
-            self.tls_transport(url)?;
+            self.response_str = self.tls_transport(request, url)?;
         }
 
         response = self.response_str.clone();
@@ -265,8 +265,8 @@ impl HTTP {
         Ok(resp)
     }
 
-    #[cfg(feature = "native_tls")]
-    fn tls_transport(&self, url: &str) -> Result<(), HttpError> {
+    #[cfg(feature = "native-tls")]
+    fn tls_transport(&self, request: String, url: &str) -> Result<String, HttpError> {
         let port = match self.url.port() {
             Some(p) => p,
             None => DEF_SSL_PORT,
@@ -277,13 +277,15 @@ impl HTTP {
         let mut stream = connector.connect(&self.host, stream)?;
 
         stream.write_all(request.as_bytes())?;
-        stream.read_to_string(&mut self.response_str)?;
+        let mut buf = String::new();
+        stream.read_to_string(&mut buf)?;
+        Ok(buf)
     }
 
-    #[cfg(not(feature = "native_tls"))]
-    fn tls_transport(&self, _url: &str) -> Result<(), HttpError> {
+    #[cfg(not(feature = "native-tls"))]
+    fn tls_transport(&self, _request: String, _url: &str) -> Result<String, HttpError> {
         Err(HttpError::MissingFeature(
-            "Lib not compiled with feature native_tls active".into(),
+            "Lib not compiled with feature native-tls active".into(),
         ))
     }
     /// Create Reqeust String

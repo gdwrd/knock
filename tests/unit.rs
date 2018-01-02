@@ -46,4 +46,13 @@ mod test {
 
         assert!(!string.is_empty(), "Response shouldn't be empty");
     }
+    #[cfg(feature = "native-tls")]
+    #[test]
+    fn get_tls_response() {
+        let mut http = HTTP::new("https://google.com/").unwrap();
+        let response = http.get().send().unwrap();
+        let string = response.as_str();
+
+        assert!(!string.is_empty(), "Response shouldn't be empty");
+    }
 }
