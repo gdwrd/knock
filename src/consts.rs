@@ -1,4 +1,4 @@
-pub const HTTP_VERSION: &'static str = "HTTP/1.1";
+pub const HTTP_VERSION: &'static str = "HTTP/1.0";
 pub const CL_METHODS: [&'static str; 2] = ["POST", "PUT"];
 pub const C_TYPE: [&'static str; 3] = [
     "application/json",
