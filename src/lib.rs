@@ -43,6 +43,8 @@ pub struct HTTP {
     pub header: HashMap<String, String>,
     body_str: String,
 
+    danger_accept_invalid_certs: bool,
+
     host: String,
     boundary: String,
     response_str: String,
@@ -80,6 +82,8 @@ impl HTTP {
         Ok(HTTP {
             response: response,
             url: url,
+
+            danger_accept_invalid_certs: false,
 
             method: String::new(),
             body: HashMap::new(),
@@ -145,6 +149,20 @@ impl HTTP {
     ///
     pub fn delete(&mut self) -> &mut Self {
         self.method = "DELETE".to_string();
+        self
+    }
+
+    /// Disable SSL validation before performing a GET request
+    ///
+    /// ```rust
+    /// extern crate knock;
+    ///
+    /// let mut http = knock::HTTP::new("https://example.com/api/date").unwrap();
+    /// http.danger_accept_invalid_certs(true).get().send();
+    /// ```
+    ///
+    pub fn danger_accept_invalid_certs(&mut self, danger_accept_invalid_certs: bool) -> &mut Self {
+        self.danger_accept_invalid_certs = danger_accept_invalid_certs;
         self
     }
 
@@ -272,7 +290,11 @@ impl HTTP {
             None => DEF_SSL_PORT,
         };
         let addr = format!("{}:{}", url, port);
-        let connector = TlsConnector::builder()?.build()?;
+
+        let connector = match self.danger_accept_invalid_certs {
+            true  => TlsConnector::builder().danger_accept_invalid_certs(true).build()?,
+            false => TlsConnector::builder().build()?,
+        };
         let stream = TcpStream::connect(addr)?;
         let mut stream = connector.connect(&self.host, stream)?;
 
