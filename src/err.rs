@@ -80,21 +80,7 @@ impl fmt::Display for HttpError {
 }
 
 impl error::Error for HttpError {
-    fn description(&self) -> &str {
-        match *self {
-            HttpError::Parse(ref err) => err.description(),
-            HttpError::IO(ref err) => err.description(),
-            HttpError::Json(ref err) => err.description(),
-            #[cfg(feature = "native-tls")]
-            HttpError::TLS(ref err) => err.description(),
-            #[cfg(feature = "native-tls")]
-            HttpError::SSL(ref err) => err.description(),
-            HttpError::ParseInt(ref err) => err.description(),
-            HttpError::MissingFeature(ref err) => err,
-        }
-    }
-
-    fn cause(&self) -> Option<&error::Error> {
+    fn source(&self) -> Option<&(dyn error::Error + 'static)> {
         match *self {
             HttpError::Parse(ref err) => Some(err),
             HttpError::IO(ref err) => Some(err),

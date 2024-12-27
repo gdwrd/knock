@@ -22,25 +22,38 @@ mod test {
 
     #[test]
     fn setup_request_with_body_str() {
-        let mut http = HTTP::new("http://www.mocky.io/v2/58f48af0100000b60f68cad8").unwrap();
+        let mut http = HTTP::new("http://httpbin.org/post").unwrap();
         let body_str = "{\"key\":\"value\"}";
-        let response = http.post().body_as_str(body_str).send().unwrap();
+        let mut headers = std::collections::HashMap::new();
+        headers.insert("Content-Type".to_string(), "application/json".to_string());
+        let response = http.post()
+            .header(headers)
+            .body_as_str(body_str)
+            .send()
+            .unwrap();
 
         assert!(response.status == 200, "Status should be 200");
     }
 
     #[test]
     fn setup_request_with_body_str_second() {
-        let mut http = HTTP::new("http://www.mocky.io/v2/58f48af0100000b60f68cad8").unwrap();
+        let mut http = HTTP::new("http://httpbin.org/post").unwrap();
         let body_str = "{\"key\":\"value\"}";
-        let response = http.post().body_as_str(body_str).send().unwrap();
+        let mut headers = std::collections::HashMap::new();
+        headers.insert("Content-Type".to_string(), "application/json".to_string());
+        let response = http.post()
+            .header(headers)
+            .body_as_str(body_str)
+            .send()
+            .unwrap();
 
-        assert!(response.body == body_str);
+        // httpbin returns JSON with the data in the "data" field
+        assert!(response.body.contains("\"data\": \"{\\\"key\\\":\\\"value\\\"}\""), "Response should contain the sent body in data field");
     }
 
     #[test]
     fn get_reponse_as_string() {
-        let mut http = HTTP::new("http://www.mocky.io/v2/58f48af0100000b60f68cad8").unwrap();
+        let mut http = HTTP::new("http://httpbin.org/get").unwrap();
         let response = http.get().send().unwrap();
         let string = response.as_str();
 

@@ -14,7 +14,7 @@ use std::io::prelude::*;
 use std::path::Path;
 use std::fs::File;
 
-use rand::Rng;
+use rand::{Rng, distributions::Alphanumeric};
 use url::{Url, ParseError};
 use consts::*;
 use err::HttpError;
@@ -256,8 +256,9 @@ impl HTTP {
     ///
     pub fn send(&mut self) -> Result<Response, HttpError> {
         self.boundary = rand::thread_rng()
-            .gen_ascii_chars()
+            .sample_iter(&Alphanumeric)
             .take(32)
+            .map(char::from)
             .collect::<String>();
 
         let url = self.url.host_str().ok_or(ParseError::EmptyHost)?;
